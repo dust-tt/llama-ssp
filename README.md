@@ -11,7 +11,7 @@ Run the XPs (not on your local machine):
 ```python3 llamassp.py MODEL_NAME [DRAFT_NAME] 2> err.log```
 
 If DRAFT_NAME is not specified, models are run with regular sampling on a few examples, and model latency is measured.
-If DRAFT_NAME is specified, speculative sampling latency is measured along with regular model latency.
+If DRAFT_NAME is specified, speculative sampling latency is measured.
 
 ## Regular sampling speed
 Example:
