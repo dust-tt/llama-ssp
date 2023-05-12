@@ -1,15 +1,16 @@
+import sys
 import time
 import torch
 from transformers import LlamaTokenizer, LlamaForCausalLM
 
-from lssp.ssp import ssp
+from lssp.ssp import ssp, FakeModel
 
 MAX_NEW_TOKENS = 64
 llama7b_name = 'decapoda-research/llama-7b-hf'
 llama13b_name = 'decapoda-research/llama-13b-hf'
 batch_size = 1
 
-text = 'Hamburg is in which country?\n'
+text = 'In which country is Hamburg?\n'
 tokenizer = LlamaTokenizer.from_pretrained(llama7b_name)
 
 # free_in_GB = int(torch.cuda.mem_get_info()[0]/1024**3)
@@ -19,51 +20,63 @@ tokenizer = LlamaTokenizer.from_pretrained(llama7b_name)
 # max_memory = {i: max_memory for i in range(n_gpus)}
 
 
-def create_model(model_name, max_memory):
+def create_model(model_name, max_memory, load_in_8bit=True):
     return LlamaForCausalLM.from_pretrained(
         model_name,
         device_map='auto',
-        load_in_8bit=True,
+        load_in_8bit=load_in_8bit,
         max_memory=max_memory
     )
 
 
-def try_model(model):
+def time_model(model):
     # time the first run
     start_time = time.time()
     input_ids = tokenizer(text, return_tensors="pt").input_ids
     input_ids = torch.stack([input_ids[0]] * batch_size).to(model.device)
-    print("========")
-    print("HF generation:")
     generated_ids = model.generate(input_ids, max_length=MAX_NEW_TOKENS)
-    print(tokenizer.decode(generated_ids[0], skip_special_tokens=True))
-    mid_time = time.time()
-    print(f"Time for HF generation: {mid_time - start_time:.2f}s")
+    nb_tokens = generated_ids.shape[1] - input_ids.shape[1]
+    token_per_sec = nb_tokens / (time.time() - start_time)
+    return generated_ids, token_per_sec
+
+
+def print_results(tokens_s, outputs, name='Noname'):
+    print("Results for", name)
+    print(f"Tokens per second: {tokens_s:.2f}/s")
     print("========\n")
-    print("Manual generation (greedy)")
-    input_ids = tokenizer(text, return_tensors="pt").input_ids
-    input_ids = torch.stack([input_ids[0]] * batch_size).to(model.device)
-    for _ in range(MAX_NEW_TOKENS):
-        outputs = model(input_ids)
-        next_token_logits = outputs.logits[:, -1, :]
-        next_token_id = torch.argmax(next_token_logits, dim=-1)
-        # probs = torch.softmax(next_token_logits.float(), dim=-1)
-        # next_token_id = torch.multinomial(
-        #    probs / 0.2, num_samples=1).squeeze(1)
-        input_ids = torch.cat([input_ids, next_token_id.unsqueeze(-1)], dim=-1)
-    print(tokenizer.decode(input_ids[0], skip_special_tokens=True))
-    mid_time2 = time.time()
-    print(f"Time for manual generation: {mid_time2 - mid_time:.2f}s")
+    print(tokenizer.decode(outputs[0], skip_special_tokens=True))
     print("========\n")
-    print("SSP generation:")
-    input_ids = tokenizer(text, return_tensors="pt").input_ids
-    input_ids = torch.stack([input_ids[0]] * batch_size).to(model.device)
-    input_ids = ssp(model, MAX_NEW_TOKENS, model, input_ids, K=4)
-    print(tokenizer.decode(input_ids[0], skip_special_tokens=True))
-    end_time = time.time()
-    print(f"Time for SSP generation: {end_time - mid_time2:.2f}s")
+    print(f"Tokens per second: {tokens_s:.2f}/s")
+
+
+models_params = {
+    '7B_8bit': {'model_name': llama7b_name,
+                'max_memory': {0: '10GB'},
+                'load_in_8bit': True},
+    '13B_8bit': {'model_name': llama13b_name,
+                 'max_memory': {0: '19GB'},
+                 'load_in_8bit': True},
+    '7B': {'model_name': llama7b_name,
+           'max_memory': {0: '18GB'},
+           'load_in_8bit': False},
+}
+
+
+def print_speeds(speeds):
+    print("Speeds:")
+    for model_name, tokens_s in speeds.items():
+        print('-'*20)
+        print(f"{model_name} |  {tokens_s:.2f}/s")
+        print('-'*20)
 
 
 if __name__ == '__main__':
-    model = create_model(llama7b_name, max_memory={0: '7GB'})
-    try_model(model)
+    speeds = {}
+    for model_name, params in models_params.items():
+        model = create_model(**params)
+        outputs, tokens_s = time_model(model)
+        speeds[model_name] = tokens_s
+        print_results(tokens_s, outputs, model_name)
+        del model
+        torch.cuda.empty_cache()
+    print_speeds(speeds)

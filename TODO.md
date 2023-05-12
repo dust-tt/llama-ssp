@@ -1,4 +1,6 @@
 TODO
+- Benchmarks in token/s for 7B, 13B quantized, 7B non-quantized
+    - display model results in markdown
 - test avec un 7/13 sur la machine 4GPUs
     - puis un 7/30 car là le speedup sera p-e présent
     - 2 modes : All-4 GPUs (easy but slow draft) ou 1+3GPUs (draft should then be faster than target, better speedup)
