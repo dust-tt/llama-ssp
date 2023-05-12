@@ -102,7 +102,7 @@ models_params = {
     '7B_8bit_4GPUs': {'model_name': llama7b_name,
                       'max_memory': {0: '10GB', 1: '10GB', 2: '10GB', 3: '10GB'}},
     '13B_8bit': {'model_name': llama13b_name,
-                 'max_memory': {0: '20GB'},
+                 'max_memory': {0: '20GB', 1: '20GB', 2: '20GB', 3: '20GB'},
                  'load_in_8bit': True},
     '7B': {'model_name': llama7b_name,
            'max_memory': {0: '20GB', 1: '20GB'},

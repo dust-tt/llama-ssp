@@ -9,11 +9,14 @@ llama7b_name = 'decapoda-research/llama-7b-hf'
 tokenizer = LlamaTokenizer.from_pretrained(llama7b_name)
 
 
-def argmax(logits):
+def sample_fn(logits):
     return torch.argmax(logits, dim=-1)
 
 
-sample_fn = argmax
+def temp_sampling(logits):
+    temp = 0.5
+    probs = torch.softmax(logits.float()/temp, dim=-1)
+    return torch.multinomial(probs, num_samples=1).squeeze(-1)
 
 
 def _draft_sample_k(model, input_ids, K):
@@ -50,7 +53,7 @@ def _ssp_iteration(draft_model, target_model, input_ids, K=4):
     inputs_plus_k, draft_logits = _draft_sample_k(
         draft_model, input_ids, K
     )
-
+    print(f"Possible continuations: {tokenizer.decode(inputs_plus_k[0,T:], skip_special_tokens=True)}")
     # get the logits for the same tokens from the target model
     # target_logits are a (B, K+1, V) tensor
     # TODO avoid using .logits since it is HF-specific
@@ -86,6 +89,7 @@ def _ssp_iteration(draft_model, target_model, input_ids, K=4):
         input_ids = torch.cat(
             [input_ids, next_token_id.unsqueeze(1)],
             dim=1)
+    print(f"Accepted continuations: {tokenizer.decode(input_ids[0,T:], skip_special_tokens=True)}")
     return input_ids
 
 

@@ -26,23 +26,23 @@ Models run on the number of GPUs specified in `model_params`, e.g. `7B_8bit` run
 
 Currently, on a g5.12xlarge AWS instance, timings should look like those:
 
-----------------
-Model_type | Ms/token
-----------------
-7B_4GPUs |  86ms
-----------------
-7B_8bit | 210ms
------
-7B_8bit_4GPUs |  216ms
-----------------
-13B_8bit |  265ms
-----------------
-30B_8bit |  401ms
-----------------
-65B_8bit |  528ms
-----------------
+
+|Model_type | Ms/token|
+|---|---|
+|7B_4GPUs |  86ms|
+|7B_8bit | 210ms|
+|7B_8bit_4GPUs |  216ms|
+|13B_8bit |  265ms|
+|30B_8bit |  401ms|
+|65B_8bit |  528ms|
+
 
 ## Speculative Sampling speed
 Example:
 ```python3 llamassp.py 30B_8bit 7B_8bit_4GPUs```
 Will run speculative sampling using the second model name as draft model
+
+Results of the `13B_8bit / 7B_8bit_4GPUs` : 285ms/token -- recovers the actual sample distribution
+
+Results of the `30B_8bit / 7B_8bit_4GPUs` : 510ms/token -- shaky: sometimes recovers the actual distribution, sometimes not
+
