@@ -5,7 +5,7 @@ import torch
 from torch import nn
 from transformers import LlamaTokenizer
 llama7b_name = 'decapoda-research/llama-7b-hf'
-
+torch.manual_seed(1337)
 tokenizer = LlamaTokenizer.from_pretrained(llama7b_name)
 
 
@@ -39,8 +39,11 @@ def _draft_sample_k(model, input_ids, K):
 
 
 def _target_sample_from_logits(target_logits, draft_logits):
-    distribution = torch.max(target_logits - draft_logits,
+    distribution = (target_logits.softmax(dim=-1)
+                    - draft_logits.softmax(dim=-1))
+    distribution = torch.max(distribution,
                              torch.zeros_like(target_logits))
+    distribution = distribution / distribution.sum(dim=-1, keepdim=True)
     return sample_fn(distribution)
 
 
@@ -53,7 +56,8 @@ def _ssp_iteration(target_model, draft_model, input_ids, K=4):
     inputs_plus_k, draft_logits = _draft_sample_k(
         draft_model, input_ids, K
     )
-    print(f"Possible continuations: {tokenizer.decode(inputs_plus_k[0,T:], skip_special_tokens=True)}")
+    print(
+        f"Possible continuations: {tokenizer.decode(inputs_plus_k[0,T:], skip_special_tokens=True)}")
     # get the logits for the same tokens from the target model
     # target_logits are a (B, K+1, V) tensor
     # TODO avoid using .logits since it is HF-specific
@@ -62,9 +66,11 @@ def _ssp_iteration(target_model, draft_model, input_ids, K=4):
     # Accept-reject token loop
     all_accepted = True
     for t in range(1, K+1):
-        # TODO for B > 1, remove the [:1] and implement the fix
-        sampled_ratios = (target_logits[:1, t-1, inputs_plus_k[0, T+t-1]]
-                          / draft_logits[:1, t-1, inputs_plus_k[0, T+t-1]])
+        sampled_ratios = (
+            target_logits[:1, t-1, :].softmax(dim=-1)[:1, inputs_plus_k[0, T+t-1]]
+            / draft_logits[:1, t-1, :].softmax(dim=-1)[:1, inputs_plus_k[0, T+t-1]]
+        )
+        # print(f"Sampled ratios: {sampled_ratios}")
         sampled_ratios = torch.min(sampled_ratios,
                                    torch.ones_like(sampled_ratios))
         rs = torch.rand_like(sampled_ratios)
@@ -89,7 +95,8 @@ def _ssp_iteration(target_model, draft_model, input_ids, K=4):
         input_ids = torch.cat(
             [input_ids, next_token_id.unsqueeze(1)],
             dim=1)
-    print(f"Accepted continuations: {tokenizer.decode(input_ids[0,T:], skip_special_tokens=True)}")
+    print(
+        f"Accepted continuations: {tokenizer.decode(input_ids[0,T:], skip_special_tokens=True)}")
     return input_ids
 
 
