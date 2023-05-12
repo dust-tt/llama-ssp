@@ -46,7 +46,6 @@ def print_results(tokens_s, outputs, name='Noname'):
     print("========\n")
     print(tokenizer.decode(outputs[0], skip_special_tokens=True))
     print("========\n")
-    print(f"Tokens per second: {tokens_s:.2f}/s")
 
 
 models_params = {
@@ -56,9 +55,6 @@ models_params = {
     '13B_8bit': {'model_name': llama13b_name,
                  'max_memory': {0: '19GB'},
                  'load_in_8bit': True},
-    '7B': {'model_name': llama7b_name,
-           'max_memory': {0: '18GB'},
-           'load_in_8bit': False},
 }
 
 
