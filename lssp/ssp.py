@@ -44,7 +44,7 @@ def _target_sample_from_logits(target_logits, draft_logits):
     return sample_fn(distribution)
 
 
-def _ssp_iteration(draft_model, target_model, input_ids, K=4):
+def _ssp_iteration(target_model, draft_model, input_ids, K=4):
 
     _, T = input_ids.shape
     # sample K tokens from the draft model autoregressively
@@ -93,13 +93,13 @@ def _ssp_iteration(draft_model, target_model, input_ids, K=4):
     return input_ids
 
 
-def ssp(target_model, min_nb_tokens, draft_model, input_ids, K=4):
+def ssp(target_model, draft_model, min_nb_tokens, input_ids, K=4):
     B, T = input_ids.shape
     assert B == 1, "Batch size must be 1, implement the fixes for B > 1"
 
     while input_ids.shape[1] < T + min_nb_tokens:
         print("Current length:", input_ids.shape[1])
-        input_ids = _ssp_iteration(draft_model, target_model, input_ids, K)
+        input_ids = _ssp_iteration(target_model, draft_model, input_ids, K)
     return input_ids
 
 
@@ -121,4 +121,4 @@ if __name__ == '__main__':
     target_model = FakeModel(vocab_size)
     draft_model = FakeModel(vocab_size)
     input_ids = torch.tensor([[1, 2, 3, 4, 5]])
-    print(ssp(target_model, 10, draft_model, input_ids))
+    print(ssp(target_model, draft_model, 10, input_ids))

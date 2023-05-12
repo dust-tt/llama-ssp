@@ -125,7 +125,7 @@ models_params = {
 }
 
 
-def time_ssp(draft_name, target_name, K=4):
+def time_ssp(target_name, draft_name, K=4):
     draft_model = create_model(**models_params[draft_name])
     target_model = create_model(**models_params[target_name])
     nb_tokens = 0
@@ -133,8 +133,10 @@ def time_ssp(draft_name, target_name, K=4):
     input_ids = tokenizer(texts[0], return_tensors="pt").input_ids
     input_ids = torch.stack(
         [input_ids[0]] * batch_size).to(draft_model.device)
-    generated_ids = ssp(draft_model, MAX_NEW_TOKENS,
-                        target_model, input_ids, K=K)
+    generated_ids = ssp(target_model,
+                        draft_model,
+                        MAX_NEW_TOKENS,
+                        input_ids, K=K)
 
     start_time = time.time()
     for text in texts[1:]:
@@ -143,8 +145,10 @@ def time_ssp(draft_name, target_name, K=4):
         input_ids = tokenizer(text, return_tensors="pt").input_ids
         input_ids = torch.stack(
             [input_ids[0]] * batch_size).to(draft_model.device)
-        generated_ids = ssp(draft_model, MAX_NEW_TOKENS,
-                            target_model, input_ids, K=K)
+        generated_ids = ssp(target_model,
+                            draft_model,
+                            MAX_NEW_TOKENS,
+                            input_ids, K=K)
         nb_tokens += generated_ids.shape[1] - input_ids.shape[1]
         print("Completion: ", tokenizer.decode(
             generated_ids[0], skip_special_tokens=True))
@@ -209,7 +213,7 @@ if __name__ == "__main__":
         draft_name = sys.argv[2]
         print(f"Testing {model_name} with draft {draft_name}")
         print('-'*20)
-        gen_ids, ms_per_token = time_ssp(draft_name, model_name)
+        gen_ids, ms_per_token = time_ssp(model_name, draft_name)
         print_results(ms_per_token, gen_ids, model_name)
 
     else:
