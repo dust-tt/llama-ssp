@@ -1,17 +1,38 @@
 # Llama SSp
 
-Experiments on speedups that Speculative Sampling (SSp) can bring to Llama models.
+Using Speculative Sampling (SSp) to speed up larger Llama models. 
 
+Main result: 60% speed improvement with same quality.
+
+The main result of this experiment is to show that a 30B llama model running with a latency of ~ 260ms per token, can be sped up using Speculative sampling with a to get ~ 160ms per token.
+
+
+## Setup
 Prepare a GPU machine with 4 or more GPUs: ``./machine-install.sh``
 
 Setup the project (virtual env, requirements): ``./setup.sh``
 
 Run the XPs (not on your local machine): 
 
-```python3 llamassp.py MODEL_NAME [DRAFT_NAME] 2> err.log```
+```python3 llamassp.py MODEL_NAME [DRAFT_NAME]```
 
 If DRAFT_NAME is not specified, models are run with regular sampling on a few examples, and model latency is measured.
 If DRAFT_NAME is specified, speculative sampling latency is measured.
+
+
+### Memory requirements
+To run these experiments, the sum of available memory should be about 4 times the model size for a regular model, and 2 times the model size for a quantized model
+
+E.g. to test the 30B model => you need 120GB GPU memory. To test the 7B_8bit model => you can do it with 14GB so a single GPU might be enough.
+To test speculative sampling of a 30B model with a 7B draft, you need 148GB GPU memory (4*37). 
+
+### Specific GPU config
+If you stumble on this kind of error: `Error 802: system not yet initialized`
+On some machines -- e.g. p4d.24xlarge that was used for these experiments -- additional setup might be required 
+```
+sudo apt-get install cuda-drivers-fabricmanager
+sudo systemctl start nvidia-fabricmanager
+```
 
 ## Regular sampling speed
 Example:
@@ -36,6 +57,19 @@ Currently, on a g5.12xlarge AWS instance, timings should look like those:
 |30B_8bit |  405ms|
 |65B_8bit |  530ms|
 
+On a harder, faster, better, stronger p4d.24xlarge (8 A100 40GB gpus)
+
+|Model_type | Ms/token|
+|---|---|
+|7B_8bit |  210ms|
+|7B|60ms|
+|7B_4GPUs|70ms|
+|13B|100ms|
+|30B|260ms|
+|65B|510ms|
+
+
+
 
 ## Speculative Sampling speed
 Example:
@@ -50,6 +84,7 @@ Results of the `30B_8bit / 7B_8bit_4GPUs` : 370ms/token
 
 =>  a bit less than 10% improvement over the 30B_8bit model
 
+##
 ## Distribution recovery
 In addition to measuring the speed improvement, it is necessary to check speculative sampling samples with distribution similar to original sampling, in other words that the SSP generations are as good as the regular ones.
 
@@ -60,4 +95,46 @@ A similar observation can be made for the regularly sampled 30B 8bit model and t
 Note that since there is inherent randomness in the acceptation of tokens from the draft model, the completion should not expected to be exactly the same. 
 
 To confirm the validity of the experiments, it is necessary to find a more precise metric of the fact that the completions are of the same quality. TODO. 
+
+## Example
+
+### Completing text: The smell of freshly baked bread filled the air as I entered the bakery.
+#### Regular 7B
+**Completion**: The smell of freshly baked bread filled the air as I entered the bakery. The smell of freshly baked bread filled the air as I entered the bakery. The smell of freshly baked bread filled the air
+
+**Time**: 2.44s
+
+#### Regular 30B 
+**Completion**:  The smell of freshly baked bread filled the air as I entered the bakery. The smell of freshly baked bread is one of the best smells in the world. I was greeted by a friendly employee who asked me
+
+**Time**: 8.93s
+
+
+#### SSp 30B / 7B
+**Completion**:  The smell of freshly baked bread filled the air as I entered the bakery. The smell of fresh bread and cakes made me feel hungry. I looked around the bakery. I saw different kinds of bread and cakes.
+
+**Time**: 5.26s
+
+### Completing text: The sound of the train whistle echoed through the valley as I stood at the station, waiting.
+
+#### Regular 7B
+**Completion**:  The sound of the train whistle echoed through the valley as I stood at the station, waiting. I had been waiting for this moment for a long time. I had been waiting for this moment for a long time. I had been waiting for this moment for
+**Time**: 2.51s
+
+#### Regular 30B
+**Completion**:  The sound of the train whistle echoed through the valley as I stood at the station, waiting.
+I was waiting for the train to take me to the city.
+I was waiting for the train to take me to the city.
+I was waiting
+**Time**: 9.16s
+
+#### SSp 30B / 7B
+**Completion**:  The sound of the train whistle echoed through the valley as I stood at the station, waiting. I was waiting for the train to take me to the city. I could not wait to see him. I had not seen him in a long time. I had not seen
+**Time**: 6.23s
+
+
+
+30B
+
+30B / 7B
 

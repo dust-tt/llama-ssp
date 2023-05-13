@@ -33,11 +33,15 @@ texts = [
     'The clock struck midnight, and I knew that my life would never be the same.',]
 tokenizer = LlamaTokenizer.from_pretrained(llama7b_name)
 
-# free_in_GB = int(torch.cuda.mem_get_info()[0]/1024**3)
-# max_memory = f'{int(torch.cuda.mem_get_info()[0]/1024**3)-2}GB'
+free_in_GB = int(torch.cuda.mem_get_info()[0]/1024**3)
+max_mem = f'{int(torch.cuda.mem_get_info()[0]/1024**3)-2}GB'
 
-# n_gpus = torch.cuda.device_count()
-# max_memory = {i: max_memory for i in range(n_gpus)}
+n_gpus = torch.cuda.device_count()
+
+
+def max_memory(gpus, starting_gpu=0):
+    assert 1 <= gpus <= n_gpus
+    return {i: max_mem for i in range(starting_gpu, starting_gpu+gpus)}
 
 
 def create_model(model_name, max_memory, load_in_8bit=True):
@@ -94,34 +98,38 @@ def print_results(tokens_s, outputs, name='Noname'):
 
 models_params = {
     '7B_8bit': {'model_name': llama7b_name,
-                'max_memory': {0: '10GB'},
+                'max_memory': max_memory(1),
                 'load_in_8bit': True},
     '7B_8bit_2GPUs': {'model_name': llama7b_name,
-                      'max_memory': {0: '10GB', 1: '10GB'},
+                      'max_memory': max_memory(2),
                       'load_in_8bit': True},
     '7B_8bit_4GPUs': {'model_name': llama7b_name,
-                      'max_memory': {0: '10GB', 1: '10GB', 2: '10GB', 3: '10GB'}},
-    '13B_8bit': {'model_name': llama13b_name,
-                 'max_memory': {0: '20GB', 1: '20GB', 2: '20GB', 3: '20GB'},
-                 'load_in_8bit': True},
+                      'max_memory': max_memory(4),
+                      'load_in_8bit': True},
     '7B': {'model_name': llama7b_name,
-           'max_memory': {0: '20GB', 1: '20GB'},
+           'max_memory': max_memory(1),
            'load_in_8bit': False},
     '7B_4GPUs': {'model_name': llama7b_name,
-                 'max_memory': {0: '20GB', 1: '20GB', 2: '20GB', 3: '20GB'},
+                 'max_memory': max_memory(4),
                  'load_in_8bit': False},
+    '13B_8bit': {'model_name': llama13b_name,
+                 'max_memory': max_memory(1),
+                 'load_in_8bit': True},
     '13B': {'model_name': llama13b_name,
-            'max_memory': {0: '20GB', 1: '20GB', 2: '20GB'},
-            'load_in_8bit': False},
-    '30B': {'model_name': llama30b_name,
-            'max_memory': {0: '20GB', 1: '20GB', 2: '20GB', 3: '20GB'},
+            'max_memory': max_memory(2),
             'load_in_8bit': False},
     '30B_8bit': {'model_name': llama30b_name,
-                 'max_memory': {0: '20GB', 1: '20GB', 2: '20GB'},
+                 'max_memory': max_memory(2),
                  'load_in_8bit': True},
+    '30B': {'model_name': llama30b_name,
+            'max_memory': max_memory(4, 1),
+            'load_in_8bit': False},
     '65B_8bit': {'model_name': llama65b_name,
-                 'max_memory': {0: '20GB', 1: '20GB', 2: '20GB', 3: '20GB'},
+                 'max_memory': max_memory(4),
                  'load_in_8bit': True},
+    '65B': {'model_name': llama65b_name,
+            'max_memory': max_memory(8),
+            'load_in_8bit': False},
 }
 
 
