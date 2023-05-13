@@ -1,11 +1,12 @@
+from lssp.ssp import ssp, stream_token_if_required, sample_fn
 import sys
 import time
 import torch
 from transformers import LlamaTokenizer, LlamaForCausalLM
+from termcolor import colored
+torch.manual_seed(1339)
 
-from lssp.ssp import ssp, FakeModel
-
-MAX_NEW_TOKENS = 32
+MAX_NEW_TOKENS = 64
 llama7b_name = 'decapoda-research/llama-7b-hf'
 llama13b_name = 'decapoda-research/llama-13b-hf'
 llama30b_name = 'decapoda-research/llama-30b-hf'
@@ -47,21 +48,19 @@ def max_memory(gpus, starting_gpu=0):
 def create_model(model_name, max_memory, load_in_8bit=True):
     return LlamaForCausalLM.from_pretrained(
         model_name,
-        device_map='auto',
+        device_map='sequential',
         load_in_8bit=load_in_8bit,
         max_memory=max_memory
     )
 
 
-def greedy_sampling(model, input_ids, display=False):
+def sample_model(model, input_ids, display=False):
     for _ in range(MAX_NEW_TOKENS):
         outputs = model(input_ids)
         next_token_logits = outputs.logits[:, -1, :]
-        next_token_id = torch.argmax(next_token_logits, dim=-1)
+        next_token_id = sample_fn(next_token_logits)
         input_ids = torch.cat([input_ids, next_token_id.unsqueeze(-1)], dim=-1)
-        if display:
-            sys.stdout.write(tokenizer.decode(
-                next_token_id, skip_special_tokens=True))
+        stream_token_if_required(input_ids, stream=display)
     return input_ids
 
 
@@ -69,7 +68,7 @@ def time_model(model):
     # time the first run
     input_ids = tokenizer(texts[0], return_tensors="pt").input_ids
     input_ids = torch.stack([input_ids[0]] * batch_size).to(model.device)
-    generated_ids = greedy_sampling(model, input_ids)
+    generated_ids = sample_model(model, input_ids)
 
     start_time = time.time()
     nb_tokens = 0
@@ -78,7 +77,7 @@ def time_model(model):
         intermediate_time = time.time()
         input_ids = tokenizer(text, return_tensors="pt").input_ids
         input_ids = torch.stack([input_ids[0]] * batch_size).to(model.device)
-        generated_ids = greedy_sampling(model, input_ids)
+        generated_ids = sample_model(model, input_ids)
         nb_tokens += generated_ids.shape[1] - input_ids.shape[1]
         print("Completion: ", tokenizer.decode(
             generated_ids[0], skip_special_tokens=True))
@@ -195,29 +194,54 @@ def models_raw_speed():
     print(speeds)
 
 
-def show_comparative_speeds(text,
-                            model_names={'draft': '7B_8bit', 'target': '30B_8bit'}):
-    target_name = model_names['target']
-    draft_name = model_names['draft']
+def show_comparative_speeds(text, model, draft_model):
     input_ids = tokenizer(text, return_tensors="pt").input_ids
-    print(f"Comparative speeds of model {target_name}:")
-    print("- regular sampling: ")
-    sys.out.write(text)
-    model = create_model(**models_params[target_name])
+    print(colored("=> Regular sampling with target model",
+                  attrs=['bold']))
+    sys.stdout.write(text)
     start_time = time.time()
-    greedy_sampling(model, input_ids, display=True)
-    print(f"=> {time.time() - start_time}s")
-    print("- speculative sampling with : ")
-    sys.out.write(text)
-    model = create_model(**models_params[target_name])
+    sample_model(model, input_ids, display=True)
+    print("\nTime: "
+          + colored(f"{time.time() - start_time:.2f}s", 'red', attrs=['bold']))
+    print(colored(
+        "=> Speculative sampling with target model helped by draft model",
+        attrs=['bold']))
+    sys.stdout.write(text)
     start_time = time.time()
-    greedy_sampling(model, input_ids, display=True)
-    print(f"=> {time.time() - start_time}s")
+    ssp(model, draft_model, MAX_NEW_TOKENS,
+        input_ids, K=4, display=True)
+    print("\nTime: "
+          + colored(f"{time.time() - start_time:.2f}s", 'green', attrs=['bold']))
 
 
 if __name__ == "__main__":
     model_name = sys.argv[1]
-    if len(sys.argv) > 2:
+    if sys.argv[1] == 'compare':
+        model = create_model(**models_params[sys.argv[2]])
+        draft_model = create_model(**models_params[sys.argv[3]])
+        print("Warming up")
+        ssp(model, draft_model, MAX_NEW_TOKENS,
+            tokenizer(texts[0], return_tensors="pt").input_ids, K=4)
+        print(
+            f"Comparing {sys.argv[2]} model regular sampling and {sys.argv[2]} SSp with {sys.argv[3]} draft model\n====\n")
+        # Read from stdin until EOF
+        while True:
+            try:
+                sys.stdout.write("> ")
+                sys.stdout.flush()
+                text = input()
+            except EOFError:
+                break
+            show_comparative_speeds(text, model, draft_model)
+            draft_time = time.time()
+            gen_ids_draft = sample_model(draft_model,
+                                            tokenizer(text, return_tensors="pt").input_ids)
+            completion = tokenizer.decode(
+                gen_ids_draft[0], skip_special_tokens=True)
+            
+            print(colored(f"\nSide note : Draft model completion: {completion} in {time.time() - draft_time:.2f}", 'grey'))
+
+    elif len(sys.argv) == 3:
         draft_name = sys.argv[2]
         print(f"Testing {model_name} with draft {draft_name}")
         print('-'*20)

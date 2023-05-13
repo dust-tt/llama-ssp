@@ -3,3 +3,4 @@ transformers
 accelerate
 bitsandbytes
 sentencepiece
+termcolor
