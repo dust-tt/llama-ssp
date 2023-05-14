@@ -1,7 +1,8 @@
-# Generate tokens 1.5x to 3x faster : Experiments on Speculative sampling
+# Generate tokens 1.5x to 3x faster 
 
+With Speculative Sampling (SSp), a large language model can generate tokens quite faster using a smaller model as help. 
 
-With Speculative Sampling (SSp), a large language model can generate tokens quite faster using a smaller model as help. This repo shows how it's done using Llama models. Here's the idea:
+This repo shows how it's done and measures timing improvements using Llama models. Here's the idea:
 
 ![](https://github.com/philipperolet/llama-ssp/blob/main/example.gif)
 
@@ -20,9 +21,9 @@ In the following, the large model we try to speed up is called the `target model
 
 ### Caveats
 - useful mostly for live token generation, less useful in batch settings (and irrelevant to model training)
-- works best in settings where there are often "easily guessable" tokens. This is very often the case, especially for written language
+- works best in settings where there are often "easily guessable" tokens. This is very often the case, especially for written language, e.g.:
   - there is often a dot at the end of a sentence, a capitalized letter next, determinants or common words like "the, a, it..." 
-	- and given the way tokenization is done too. Eg token "amaz" => when the beginning is "It was amaz", even tiny models will guess the next token is "ing" (and the following one probably ! or :))
+  - given the way tokenization is done too; Eg token "amaz" => when the beginning is "It was amaz", even tiny models will guess the next token is "ing" (and the following one probably ! or :))
 - draft model & target model must have the same vocabulary size
 - draft model should be at least 2-3 faster than target model
 
@@ -143,5 +144,4 @@ This is not simple since there is inherent randomness in the acceptation of toke
 
 The paper cited at the beginning provides theoretical proof that the output token distributions are the same, as well as evaluations on common benchmarks. With this repo, an intuitive check can be done by looking at the completions : those of the regularly sampled 30B model seem to be of the same quality level than those of SSp 30B/7B.
 
-A next step for this repo
-
+A next step for the work in this repo will be to find clean measurements showing that the same distribution is recovered.
