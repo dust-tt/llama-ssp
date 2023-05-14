@@ -3,7 +3,7 @@
 
 With Speculative Sampling (SSp), a large language model can generate tokens quite faster using a smaller model as help. This repo shows how it's done using Llama models. Here's the idea:
 
-[TODO: THE GIF]
+![](https://github.com/philipperolet/llama-ssp/blob/main/example.gif)
 
 Above, you see a 30B llama model generating tokens (on an 8-GPU A100 machine), then you see the same model going ~50% to 100% faster (i.e. in 33% to 50% less time) using speculative sampling -- with the same completion quality. Go to [Try it yourself](#try-it-yourself) to try it yourself :)
 
@@ -11,9 +11,9 @@ Above, you see a 30B llama model generating tokens (on an 8-GPU A100 machine), t
 This repo implements an algorithm described in [this paper](https://arxiv.org/pdf/2302.01318.pdf) whose authors are warmly thanked for their work.
 
 ## Benefits and Caveats of Ssp
-
+In the following, the large model we try to speed up is called the `target model`, and the smaller model that helps sampling is called the `draft model`
 ### Benefits
-+ Almost identical memory footprint (since the draft model is lot smaller than the target model)
++ Almost identical memory footprint
 + Same completion quality
 + 1.5 to 3 times faster token generation
 + Relatively simple code
@@ -141,9 +141,7 @@ In addition to measuring the speed improvement, it is necessary to check specula
 
 This is not simple since there is inherent randomness in the acceptation of tokens from the draft model, the completions from ssp and 
 
-The paper cited at the beginning provides theoretical proof tAn intuitive check can be done by looking at the completions : those of the regularly sampled 30B model seem to be of the same quality level than those of SSp 30B/7B.
+The paper cited at the beginning provides theoretical proof that the output token distributions are the same, as well as evaluations on common benchmarks. With this repo, an intuitive check can be done by looking at the completions : those of the regularly sampled 30B model seem to be of the same quality level than those of SSp 30B/7B.
 
-
-
-To confirm the validity of the experiments, it is necessary to find a more precise metric of the fact that the completions are of the same quality. TODO. 
+A next step for this repo
 
