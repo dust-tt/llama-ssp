@@ -1,37 +1,36 @@
 # Generate tokens 1.5x to 3x faster : Experiments on Speculative sampling
 
 
-Using Speculative Sampling (SSp), a large language model can generate tokens quite faster using a smaller model as help. This repo shows how it's done using Llama models. Here's the idea:
+With Speculative Sampling (SSp), a large language model can generate tokens quite faster using a smaller model as help. This repo shows how it's done using Llama models. Here's the idea:
 
 [TODO: THE GIF]
 
-Above, you see a 30B llama model generating tokens (on an 8-GPU A100 machine), then you see the same model going 70% faster (i.e. in 40% less time) using speculative sampling -- with the same completion quality. Go to [Try it yourself](#try-it-yourself) to try it yourself :)
+Above, you see a 30B llama model generating tokens (on an 8-GPU A100 machine), then you see the same model going ~50% to 100% faster (i.e. in 33% to 50% less time) using speculative sampling -- with the same completion quality. Go to [Try it yourself](#try-it-yourself) to try it yourself :)
 
 
-This repo is based on [this paper](https://arxiv.org/pdf/2302.01318.pdf) whose authors are warmly thanked for their work.
+This repo implements an algorithm described in [this paper](https://arxiv.org/pdf/2302.01318.pdf) whose authors are warmly thanked for their work.
 
 ## Benefits and Caveats of Ssp
 
 ### Benefits
 + Almost identical memory footprint (since the draft model is lot smaller than the target model)
-+ Same completion quality (not "a little lower quality but don't worry you can't see it", same quality)
++ Same completion quality
 + 1.5 to 3 times faster token generation
 + Relatively simple code
 
+### Caveats
+- useful mostly for live token generation, less useful in batch settings (and irrelevant to model training)
+- works best in settings where there are often "easily guessable" tokens. This is very often the case, especially for written language
+  - there is often a dot at the end of a sentence, a capitalized letter next, determinants or common words like "the, a, it..." 
+	- and given the way tokenization is done too. Eg token "amaz" => when the beginning is "It was amaz", even tiny models will guess the next token is "ing" (and the following one probably ! or :))
+- draft model & target model must have the same vocabulary size
+- draft model should be at least 2-3 faster than target model
+
 #### Is it really the same quality? Speculative sampling returns different outputs than regular sampling
-They return different outputs because speculative sampling has inherent randomness. However, it is demonstrated in [this paper](https://arxiv.org/pdf/2302.01318.pdf) that using speculative sampling provides the same output probability distributions than regular sampling.
+They return different outputs because speculative sampling has inherent randomness. However, it is demonstrated in [the paper on which this repo is based](https://arxiv.org/pdf/2302.01318.pdf)  that using speculative sampling provides the same output probability distributions than regular sampling.
 
 The paper also performs experiments to show this on typical benchmarks.
 
-### Caveats
-- useful mostly for live token generation, less useful in batch settings -- and not related to model training
-- works best in settings where there are often "easily guessable" tokens. This is very often the case, especially for written language
-    - there is often a dot at the end of a sentence, a capitalized letter next, determinants or common words like "the, a, it..." 
-	- and given the way tokenization is done too. Eg token "amaz" => when the beginning is "It was amaz", even tiny models will guess the next token is "ing" (and the following one probably ! or :))
-
-### Requirements
-- draft model & target model must have the same vocabulary size
-- draft model should be at least twice faster than target model (small speedup)
 ## Try it yourself
 
 ### Setup
@@ -49,11 +48,15 @@ python3 llamassp.py compare 30B 7B  # compare regular & ssp as in the gif
 Note: the above was tested on an Ubuntu 22.04 OS.
 
 ### Run a comparison of regular Vs speculative sampling
-To try exactly what's in the gif
+To try exactly what's in the gif with various target models and draft models
 ```python3 llamassp.py compare TARGET_MODEL_NAME DRAFT_MODEL_NAME```
 
 ### Run raw timing measurements
+To run experiments measuring average model latency in ms/token:
 ```python3 llamassp.py TARGET_MODEL_NAME [DRAFT_MODEL_NAME]```
+
+Results of such measurements are below
+
 TARGET_MODEL_NAME correspond to various flavors of Llama models (7B to 30B), with or without quantization. Possible values are `7B, 13B, 30B, 7B_8bit, 13B_8bit, 30B, 30B_8bit`
 
 The full model configs are defined as `model_params` in `llamassp.py` and can be completed/changed as required -- ensuiring that there is enough memory for the model to run.
@@ -80,24 +83,42 @@ sudo systemctl start nvidia-fabricmanager
 ```
 
 
-## Experiments & results
-The main result that you can reproduce easily using this repo is with the Llama 30B model
-Using speculative sampling with a 7B draft model provides a  50% to 80% speed improvement with same quality of completions over the regular sampling of the 30B model.
+## Measurements
+The main result is the Llama 30B speed improvement using Ssp.
 
-### Notes on the experiments
-- the per-token timings may seem slow. There are two reasons for this: 1/ we are not batching, many models can generate a lot faster if requests can be batched
-    - 
+Using speculative sampling with a 7B draft model provides a  ~80% speed improvement with same quality of completions over the regular sampling of the 30B model.
 
-  - possible speeds optimized e.g. //ion not optimal. but the general point: if you have a fast one and a slow one, you can get the slow one to be twice faster
+### Measured sampling speed of various models
+
+On a p4d.24xlarge (8 A100 40GB gpus):
+
+|Model_type | Ms/token|
+|---|---|
+|7B_8bit|215ms|
+|7B|70ms|
+|7B_4GPUs|70ms|
+|13B|125ms|
+|30B|330ms|
+|65B|610ms|
+
+Comparison Ssp / regular sampling:
+
+|Model_type | Ms/token| Speed Improvement|
+|---|---|---|
+|13B|125ms|-|
+|SSP 13B/7B| **TODO**|**TODO**|
+|30B|330ms|-|
+|SSP 30B/7B| **180ms**| **80%**|
 
 
-### Regular sampling speed of various models
-Measure those like this:
-```python3 llamassp.py 13B_8bit```
-This will perform completions on 15 examples (+ 1 warmup not shown), and finally output the model generation latency in ms/token (so lower is better).
 
-Currently, on a g5.12xlarge AWS instance, timings should look like those:
+### Notes on the measures
+The timings perform completions on 15 examples (+ 1 warmup not shown), and finally output the model generation latency in ms/token (so lower is better). The measurements are on relatively small prompts (~ 1 sentence) and small completions (64 tokens); longer prompts / completion would of course decrease the speed.
 
+The per-token timings may seem slow. There are two reasons for this: 1/ we are not batching, many models can generate a lot faster in batch settings 2/ we did not optimize for per-model speed.  This was not needed since the general point to make the case for speculative sampling is that if you have a fast model and a slow one, you can get the slow one to be a lot faster for (almost) free.
+
+### Older measurements
+Experiments with quantized models on a g5.12xlarge AWS instance:
 
 |Model_type | Ms/token|
 |---|---|
@@ -108,42 +129,23 @@ Currently, on a g5.12xlarge AWS instance, timings should look like those:
 |30B_8bit |  405ms|
 |65B_8bit |  530ms|
 
-On a harder, faster, better, stronger p4d.24xlarge (8 A100 40GB gpus)
+Comparison Ssp / regular sampling:
 
-|Model_type | Ms/token|
-|---|---|
-|7B_8bit |  210ms|
-|7B|60ms|
-|7B_4GPUs|70ms|
-|13B|100ms|
-|30B|260ms|
-|65B|510ms|
+|Model_type | Ms/token| Speed Improvement|
+|---|---|---|
+|13B_8bit| 270ms|-|
+|SSP 13B/7B_8bit| 330ms| -
+|30B_8bit|405ms|
+|SSP 30B/7B_8bit|370ms|
 
-
-
-
-## Speculative Sampling speed
-Example:
-```python3 llamassp.py 30B_8bit 7B_8bit_4GPUs```
-will run speculative sampling using the second model name as draft model 
-
-Results of the `13B_8bit / 7B_8bit_4GPUs` : 330ms/token
-
-=> No speedup, even a speed down, which is expected since the target model is already pretty fast.
-
-Results of the `30B_8bit / 7B_8bit_4GPUs` : 370ms/token
-
-=>  a bit less than 10% improvement over the 30B_8bit model
-
-##
 ## Distribution recovery
-In addition to measuring the speed improvement, it is necessary to check speculative sampling samples with distribution similar to original sampling, in other words that the SSP generations are as good as the regular ones.
+In addition to measuring the speed improvement, it is necessary to check speculative sampling samples with distribution similar to original sampling, in other words that the SSP generations are as good as the regular ones. This in
 
-An intuitive check can be done by looking at the completions : those of the regularly sampled 13B model (8bit) seem to be of the same quality level than those of SSp 13B/7B, while seeming different in quality from the completions of other regularly sampled models.
+This is not simple since there is inherent randomness in the acceptation of tokens from the draft model, the completions from ssp and 
 
-A similar observation can be made for the regularly sampled 30B 8bit model and the SSp 30B/7B.
+The paper cited at the beginning provides theoretical proof tAn intuitive check can be done by looking at the completions : those of the regularly sampled 30B model seem to be of the same quality level than those of SSp 30B/7B.
 
-Note that since there is inherent randomness in the acceptation of tokens from the draft model, the completion should not expected to be exactly the same. 
+
 
 To confirm the validity of the experiments, it is necessary to find a more precise metric of the fact that the completions are of the same quality. TODO. 
 
