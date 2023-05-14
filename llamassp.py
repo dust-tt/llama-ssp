@@ -232,15 +232,16 @@ if __name__ == "__main__":
                 text = input()
             except EOFError:
                 break
+            show_comparative_speeds(text, model, draft_model)
+            """
             draft_time = time.time()
             gen_ids_draft = sample_model(draft_model,
                                             tokenizer(text, return_tensors="pt").input_ids)
             completion = tokenizer.decode(
                 gen_ids_draft[0], skip_special_tokens=True)
             draft_time = time.time() - draft_time
-            show_comparative_speeds(text, model, draft_model)            
             print(f"\n---\n Draft model completion: {completion}\nTime: {draft_time:.2f}s\n")
-
+            """
 
     elif len(sys.argv) == 3:
         draft_name = sys.argv[2]

@@ -106,11 +106,9 @@ Comparison Ssp / regular sampling:
 |Model_type | Ms/token| Speed Improvement|
 |---|---|---|
 |13B|125ms|-|
-|SSP 13B/7B| **TODO**|**TODO**|
+|SSP 13B/7B| **114ms**|**10%**|
 |30B|330ms|-|
 |SSP 30B/7B| **180ms**| **80%**|
-
-
 
 ### Notes on the measures
 The timings perform completions on 15 examples (+ 1 warmup not shown), and finally output the model generation latency in ms/token (so lower is better). The measurements are on relatively small prompts (~ 1 sentence) and small completions (64 tokens); longer prompts / completion would of course decrease the speed.
