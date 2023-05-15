@@ -58,16 +58,24 @@ To run experiments measuring average model latency in ms/token:
 
 Results of such measurements are below
 
-TARGET_MODEL_NAME correspond to various flavors of Llama models (7B to 30B), with or without quantization. Possible values are `7B, 13B, 30B, 7B_8bit, 13B_8bit, 30B, 30B_8bit`
+TARGET_MODEL_NAME correspond to various flavors of Llama models (7B to 30B), with or without quantization. Possible values are `7B, 13B, 30B, 7B_8bit, 13B_8bit, 30B, 30B_8bit`. These are the models published on HuggingFace by `decapoda-research`. 
+
+Using 65B versions, however, requires providing the weights yourself. Do so as explained below in "Use of custom model" 
 
 The full model configs are defined as `model_params` in `llamassp.py` and can be completed/changed as required -- ensuiring that there is enough memory for the model to run.
 
-Models run on the number of GPUs specified in `model_params`, e.g. `7B_8bit` runs on a single GPU, and a specific version `7B_8bit_4GPUs` runs on 4 gpus.
-
+Models run on the number of GPUs specified in `model_params`, e.g. `7B_8bit` runs on a single GPU, `30B` runs on 4 GPUs. For the 7B model, specific versions exist with `_4` and `_8` suffixes to run on 4 or 8 gpus, e.g. `7B_8` is the 7B model running on 8 gpus instead of one. This is needed to make it work as draft for the 65B model, also running on 8 gpus.
 
 If DRAFT_MODEL_NAME is not specified, the target model is run with regular sampling on a few examples, and model latency is measured.
 
 If DRAFT_MODEL_NAME is specified, speculative sampling latency is measured.
+#### Draft model choice
+Use the `7B` or `7B_8bit` as draft model. Specific case: to run with 65Bs as targets, use `7B_8` (using 8 gpus)
+
+#### Use of custom model
+To use a custom model, add it in `model_params`. You can provide a path to HF weights as `model_name`. Find weights on the internet, then convert them to HF weights following [these instructions](https://huggingface.co/docs/transformers/main/en/model_doc/llama).
+
+This step is required if you want to use a 65B model. This is because the 65B model provided by decapoda-research performs very bad completions through the code of this repo at the time of the writing. Using 65B weights provided by another source then converting them to HF weights was tested and works fine.
 
 #### Memory requirements
 To run these experiments, the sum of available memory should be about 4 times the model size for a regular model, and 2 times the model size for a quantized model
@@ -85,9 +93,9 @@ sudo systemctl start nvidia-fabricmanager
 
 
 ## Measurements
-The main result is the Llama 30B speed improvement using Ssp.
+The main result is the Llama 30B and 65B speed improvements using Ssp.
 
-Using speculative sampling with a 7B draft model provides a  ~80% speed improvement with same quality of completions over the regular sampling of the 30B model.
+Using speculative sampling with a 7B draft model provides a  ~80% speed improvement with same quality of completions over the regular sampling of the 30B model, and a ~125% speed improvement with the 
 
 ### Measured sampling speed of various models
 
@@ -107,9 +115,11 @@ Comparison Ssp / regular sampling:
 |Model_type | Ms/token| Speed Improvement|
 |---|---|---|
 |13B|125ms|-|
-|SSP 13B/7B| **114ms**|**10%**|
+|SSP 13B/7B|**114ms**|**10%**|
 |30B|330ms|-|
-|SSP 30B/7B| **180ms**| **80%**|
+|SSP 30B/7B|**180ms**|**80%**|
+|65B|610ms|-|
+|SSP 65B/7B |**270ms**|**125%**|
 
 ### Notes on the measures
 The timings perform completions on 15 examples (+ 1 warmup not shown), and finally output the model generation latency in ms/token (so lower is better). The measurements are on relatively small prompts (~ 1 sentence) and small completions (64 tokens); longer prompts / completion would of course decrease the speed.

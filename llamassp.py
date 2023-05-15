@@ -11,7 +11,6 @@ llama7b_name = 'decapoda-research/llama-7b-hf'
 llama13b_name = 'decapoda-research/llama-13b-hf'
 llama30b_name = 'decapoda-research/llama-30b-hf'
 llama65b_name = 'decapoda-research/llama-65b-hf'
-
 batch_size = 1
 
 texts = [
@@ -48,7 +47,7 @@ def max_memory(gpus, starting_gpu=0):
 def create_model(model_name, max_memory, load_in_8bit=True):
     return LlamaForCausalLM.from_pretrained(
         model_name,
-        device_map='sequential',
+        device_map='balanced',
         load_in_8bit=load_in_8bit,
         max_memory=max_memory
     )
@@ -99,18 +98,15 @@ models_params = {
     '7B_8bit': {'model_name': llama7b_name,
                 'max_memory': max_memory(1),
                 'load_in_8bit': True},
-    '7B_8bit_2GPUs': {'model_name': llama7b_name,
-                      'max_memory': max_memory(2),
-                      'load_in_8bit': True},
-    '7B_8bit_4GPUs': {'model_name': llama7b_name,
-                      'max_memory': max_memory(4),
-                      'load_in_8bit': True},
+    '7B_8bit_4': {'model_name': llama7b_name,
+                  'max_memory': max_memory(4),
+                  'load_in_8bit': True},
     '7B': {'model_name': llama7b_name,
            'max_memory': max_memory(1),
            'load_in_8bit': False},
-    '7B_4GPUs': {'model_name': llama7b_name,
-                 'max_memory': max_memory(4),
-                 'load_in_8bit': False},
+    '7B_8': {'model_name': llama7b_name,
+             'max_memory': max_memory(8),
+             'load_in_8bit': False},
     '13B_8bit': {'model_name': llama13b_name,
                  'max_memory': max_memory(1),
                  'load_in_8bit': True},
@@ -118,17 +114,20 @@ models_params = {
             'max_memory': max_memory(2, 1),
             'load_in_8bit': False},
     '30B_8bit': {'model_name': llama30b_name,
-                 'max_memory': max_memory(2),
+                 'max_memory': max_memory(2, 1),
                  'load_in_8bit': True},
     '30B': {'model_name': llama30b_name,
             'max_memory': max_memory(4, 1),
             'load_in_8bit': False},
     '65B_8bit': {'model_name': llama65b_name,
-                 'max_memory': max_memory(4),
+                 'max_memory': max_memory(4, 1),
                  'load_in_8bit': True},
     '65B': {'model_name': llama65b_name,
             'max_memory': max_memory(8),
             'load_in_8bit': False},
+    '65B_v2': {'model_name': "~/data/hf-weights/65B",
+               'max_memory': max_memory(8),
+               'load_in_8bit': False},
 }
 
 

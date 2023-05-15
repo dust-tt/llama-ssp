@@ -11,7 +11,8 @@ torch.manual_seed(1339)
 llama7b_name = 'decapoda-research/llama-7b-hf'
 tokenizer = LlamaTokenizer.from_pretrained(llama7b_name)
 
-TEMPERATURE = 0.7
+TEMPERATURE = 0.5
+
 
 def stream_token_if_required(input_ids, stream=False):
     if stream is True:
