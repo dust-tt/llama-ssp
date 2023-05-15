@@ -41,7 +41,7 @@ n_gpus = torch.cuda.device_count()
 
 def max_memory(gpus, starting_gpu=0):
     assert 1 <= gpus <= n_gpus
-    return {i: max_mem for i in range(starting_gpu, starting_gpu+gpus)}
+    return {i: max_mem for i in range(starting_gpu, n_gpus)}
 
 
 def create_model(model_name, max_memory, load_in_8bit=True):
@@ -111,16 +111,16 @@ models_params = {
                  'max_memory': max_memory(1),
                  'load_in_8bit': True},
     '13B': {'model_name': llama13b_name,
-            'max_memory': max_memory(2, 1),
+            'max_memory': max_memory(2),
             'load_in_8bit': False},
     '30B_8bit': {'model_name': llama30b_name,
-                 'max_memory': max_memory(2, 1),
+                 'max_memory': max_memory(2),
                  'load_in_8bit': True},
     '30B': {'model_name': llama30b_name,
-            'max_memory': max_memory(4, 1),
+            'max_memory': max_memory(4),
             'load_in_8bit': False},
     '65B_8bit': {'model_name': llama65b_name,
-                 'max_memory': max_memory(4, 1),
+                 'max_memory': max_memory(4),
                  'load_in_8bit': True},
     '65B': {'model_name': llama65b_name,
             'max_memory': max_memory(8),

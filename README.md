@@ -62,15 +62,11 @@ TARGET_MODEL_NAME correspond to various flavors of Llama models (7B to 30B), wit
 
 Using 65B versions, however, requires providing the weights yourself. Do so as explained below in "Use of custom model" 
 
-The full model configs are defined as `model_params` in `llamassp.py` and can be completed/changed as required -- ensuiring that there is enough memory for the model to run.
-
-Models run on the number of GPUs specified in `model_params`, e.g. `7B_8bit` runs on a single GPU, `30B` runs on 4 GPUs. For the 7B model, specific versions exist with `_4` and `_8` suffixes to run on 4 or 8 gpus, e.g. `7B_8` is the 7B model running on 8 gpus instead of one. This is needed to make it work as draft for the 65B model, also running on 8 gpus.
+The full model configs are defined as `model_params` in `llamassp.py` and can be completed/changed as required -- make sure that there is enough memory for the model to run. Models run in parallel in all the GPUs available.
 
 If DRAFT_MODEL_NAME is not specified, the target model is run with regular sampling on a few examples, and model latency is measured.
 
 If DRAFT_MODEL_NAME is specified, speculative sampling latency is measured.
-#### Draft model choice
-Use the `7B` or `7B_8bit` as draft model. Specific case: to run with 65Bs as targets, use `7B_8` (using 8 gpus)
 
 #### Use of custom model
 To use a custom model, add it in `model_params`. You can provide a path to HF weights as `model_name`. Find weights on the internet, then convert them to HF weights following [these instructions](https://huggingface.co/docs/transformers/main/en/model_doc/llama).
