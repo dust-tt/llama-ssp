@@ -1,8 +1,11 @@
-from lssp.ssp import ssp, stream_token_if_required, sample_fn
+import argparse
+from lssp.base import create_model
+from lssp.base import sample_model
+from lssp.ssp import ssp
 import sys
 import time
 import torch
-from transformers import LlamaTokenizer, LlamaForCausalLM
+from transformers import LlamaTokenizer
 from termcolor import colored
 torch.manual_seed(1339)
 
@@ -44,30 +47,11 @@ def max_memory(gpus, starting_gpu=0):
     return {i: max_mem for i in range(starting_gpu, n_gpus)}
 
 
-def create_model(model_name, max_memory, load_in_8bit=True):
-    return LlamaForCausalLM.from_pretrained(
-        model_name,
-        device_map='balanced',
-        load_in_8bit=load_in_8bit,
-        max_memory=max_memory
-    )
-
-
-def sample_model(model, input_ids, display=False):
-    for _ in range(MAX_NEW_TOKENS):
-        outputs = model(input_ids)
-        next_token_logits = outputs.logits[:, -1, :]
-        next_token_id = sample_fn(next_token_logits)
-        input_ids = torch.cat([input_ids, next_token_id.unsqueeze(-1)], dim=-1)
-        stream_token_if_required(input_ids, stream=display)
-    return input_ids
-
-
 def time_model(model):
     # time the first run
     input_ids = tokenizer(texts[0], return_tensors="pt").input_ids
     input_ids = torch.stack([input_ids[0]] * batch_size).to(model.device)
-    generated_ids = sample_model(model, input_ids)
+    generated_ids = sample_model(model, input_ids, MAX_NEW_TOKENS)
 
     start_time = time.time()
     nb_tokens = 0
@@ -76,7 +60,7 @@ def time_model(model):
         intermediate_time = time.time()
         input_ids = tokenizer(text, return_tensors="pt").input_ids
         input_ids = torch.stack([input_ids[0]] * batch_size).to(model.device)
-        generated_ids = sample_model(model, input_ids)
+        generated_ids = sample_model(model, input_ids, MAX_NEW_TOKENS)
         nb_tokens += generated_ids.shape[1] - input_ids.shape[1]
         print("Completion: ", tokenizer.decode(
             generated_ids[0], skip_special_tokens=True))
@@ -199,7 +183,7 @@ def show_comparative_speeds(text, model, draft_model):
                   attrs=['bold']))
     sys.stdout.write(text)
     start_time = time.time()
-    sample_model(model, input_ids, display=True)
+    sample_model(model, input_ids, MAX_NEW_TOKENS, display=True)
     print("\nTime: "
           + colored(f"{time.time() - start_time:.2f}s", 'red', attrs=['bold']))
     print(colored(
@@ -213,16 +197,43 @@ def show_comparative_speeds(text, model, draft_model):
           + colored(f"{time.time() - start_time:.2f}s", 'green', attrs=['bold']))
 
 
+def create_argument_parser():
+    """
+    Create a parser for the command-line arguments, with 'compare', 'latency'
+    and 'eval' subcommands
+    """
+    parser = argparse.ArgumentParser(
+        description='Test speeds of Llama models with regular sampling and speculative sampling: measure their latency, compare their speed, and evaluate their performance on a simple task.')
+
+    subparsers = parser.add_subparsers(dest='subcommand')
+    compare_parser = subparsers.add_parser(
+        'compare', help='Compare the speed of a given model (target model) alone, and with speculative sampling with another model (draft model)')
+    compare_parser.add_argument('model', help='Name of target model')
+    compare_parser.add_argument('draft', help='Draft model')
+
+    latency_parser = subparsers.add_parser(
+        'latency', help='Measure model latency in ms per token')
+    latency_parser.add_argument('model', help='Name of model')
+    latency_parser.add_argument('--draft', help='Draft model; if specified, will measure the latency of speculative sampling with the draft model rather than the regular latency')
+
+    eval_parser = subparsers.add_parser(
+        'eval', help='evaluate a model')
+    eval_parser.add_argument('model', help='model to use')
+    eval_parser.add_argument('--draft', help='Draft model; if specified, will evaluate the model with speculative sampling with the draft model rather than the regular model')
+    return parser
+
+
 if __name__ == "__main__":
-    model_name = sys.argv[1]
-    if sys.argv[1] == 'compare':
-        model = create_model(**models_params[sys.argv[2]])
-        draft_model = create_model(**models_params[sys.argv[3]])
+    parser = create_argument_parser()
+    args = parser.parse_args()
+    if args.subcommand == 'compare':
+        model = create_model(**models_params[args.model])
+        draft_model = create_model(**models_params[args.draft])
         print("Warming up")
         ssp(model, draft_model, MAX_NEW_TOKENS,
             tokenizer(texts[0], return_tensors="pt").input_ids, K=4)
         print(
-            f"Comparing {sys.argv[2]} model regular sampling and {sys.argv[2]} SSp with {sys.argv[3]} draft model\n====\n")
+            f"Comparing {args.model} model regular sampling and {args.model} SSp with {args.draft} draft model\n====\n")
         # Read from stdin until EOF
         while True:
             try:
@@ -235,23 +246,26 @@ if __name__ == "__main__":
             """
             draft_time = time.time()
             gen_ids_draft = sample_model(draft_model,
-                                            tokenizer(text, return_tensors="pt").input_ids)
+   , MAX_NEW_TOKENS                                         tokenizer(text, return_tensors="pt").input_ids)
             completion = tokenizer.decode(
                 gen_ids_draft[0], skip_special_tokens=True)
             draft_time = time.time() - draft_time
             print(f"\n---\n Draft model completion: {completion}\nTime: {draft_time:.2f}s\n")
             """
 
-    elif len(sys.argv) == 3:
-        draft_name = sys.argv[2]
-        print(f"Testing {model_name} with draft {draft_name}")
+    elif (args.subcommand == 'latency' and args.draft):
+        print(f"Testing {args.model} with draft {args.draft}")
         print('-'*20)
-        gen_ids, ms_per_token = time_ssp(model_name, draft_name)
-        print_results(ms_per_token, gen_ids, model_name)
+        gen_ids, ms_per_token = time_ssp(args.model, args.draft)
+        print_results(ms_per_token, gen_ids, args.model)
+
+    elif (args.subcommand == 'latency'):
+        print(f"Testing {args.model}")
+        print('-'*20)
+        model = create_model(**models_params[args.model])
+        gen_ids, ms_per_token = time_model(model)
+        print_results(ms_per_token, gen_ids, args.model)
 
     else:
-        print(f"Testing {model_name}")
-        print('-'*20)
-        model = create_model(**models_params[model_name])
-        gen_ids, ms_per_token = time_model(model)
-        print_results(ms_per_token, gen_ids, model_name)
+        # show usage
+        parser.print_help()

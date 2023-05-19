@@ -1,34 +1,14 @@
 # Implementation of speculative sampling as per
 # https://arxiv.org/abs/2302.01318
 from collections import namedtuple
-import sys
 import torch
 
 from torch import nn
-from transformers import LlamaTokenizer
 from logging import info, debug, warning, error, critical
+
+from lssp.base import get_temperature_distribution, sample_fn, stream_token_if_required, tokenizer
+
 torch.manual_seed(1339)
-llama7b_name = 'decapoda-research/llama-7b-hf'
-tokenizer = LlamaTokenizer.from_pretrained(llama7b_name)
-
-TEMPERATURE = 0.5
-
-
-def stream_token_if_required(input_ids, stream=False):
-    if stream is True:
-        output_string = tokenizer.decode(input_ids[0], skip_special_tokens=True)
-        previous_output_string = tokenizer.decode(input_ids[0][:-1], skip_special_tokens=True)
-        sys.stdout.write(output_string[len(previous_output_string):])
-        sys.stdout.flush()
-
-
-def get_temperature_distribution(logits, temperature=TEMPERATURE):
-    return torch.softmax(logits / temperature, dim=-1)
-
-
-def sample_fn(logits, temperature=TEMPERATURE):
-    probs = get_temperature_distribution(logits, temperature)
-    return torch.multinomial(probs, num_samples=1).squeeze(-1)
 
 
 def _draft_sample_k(model, input_ids, K):

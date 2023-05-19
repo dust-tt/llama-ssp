@@ -4,3 +4,4 @@ accelerate
 bitsandbytes
 sentencepiece
 termcolor
+numpy
