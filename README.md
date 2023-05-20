@@ -41,8 +41,9 @@ Get access to a machine with 4 or more GPUs, then:
 ssh [fat_machine_with_gpus]
 git clone https://github.com/philipperolet/llama-ssp.git
 cd llama-ssp
-./machine-install.sh  # global setup
-./setup.sh  # project setup(virtual env, requirements)
+chmod a+x machine-install.sh
+sudo ./machine-install.sh  # global setup
+. setup.sh  # project setup(virtual env, requirements)
 python3 llamassp.py compare 30B 7B  # compare regular & ssp as in the gif
 ```
 

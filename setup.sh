@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 # install everything for llama-ssp to run
 
