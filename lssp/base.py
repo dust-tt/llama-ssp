@@ -41,11 +41,15 @@ def sample_fn(logits, temperature=TEMPERATURE):
     return torch.multinomial(probs, num_samples=1).squeeze(-1)
 
 
-def sample_model(model, input_ids, nb_tokens, display=False):
+def sample_model(model,
+                 input_ids,
+                 nb_tokens,
+                 display=False,
+                 temperature=TEMPERATURE):
     for _ in range(nb_tokens):
         outputs = model(input_ids)
         next_token_logits = outputs.logits[:, -1, :]
-        next_token_id = sample_fn(next_token_logits)
+        next_token_id = sample_fn(next_token_logits, temperature)
         input_ids = torch.cat([input_ids, next_token_id.unsqueeze(-1)], dim=-1)
         stream_token_if_required(input_ids, stream=display)
     return input_ids

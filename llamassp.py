@@ -1,6 +1,8 @@
 import argparse
+import logging
 from lssp.base import create_model
 from lssp.base import sample_model
+from lssp import evals
 from lssp.ssp import ssp
 import sys
 import time
@@ -43,7 +45,6 @@ n_gpus = torch.cuda.device_count()
 
 
 def max_memory(gpus, starting_gpu=0):
-    assert 1 <= gpus <= n_gpus
     return {i: max_mem for i in range(starting_gpu, n_gpus)}
 
 
@@ -204,6 +205,9 @@ def create_argument_parser():
     """
     parser = argparse.ArgumentParser(
         description='Test speeds of Llama models with regular sampling and speculative sampling: measure their latency, compare their speed, and evaluate their performance on a simple task.')
+    # add argument to set log level
+    parser.add_argument(
+        '-v', '--verbose', action='store_true', help='verbose output')
 
     subparsers = parser.add_subparsers(dest='subcommand')
     compare_parser = subparsers.add_parser(
@@ -214,18 +218,24 @@ def create_argument_parser():
     latency_parser = subparsers.add_parser(
         'latency', help='Measure model latency in ms per token')
     latency_parser.add_argument('model', help='Name of model')
-    latency_parser.add_argument('--draft', help='Draft model; if specified, will measure the latency of speculative sampling with the draft model rather than the regular latency')
+    latency_parser.add_argument(
+        '--draft', help='Draft model; if specified, will measure the latency of speculative sampling with the draft model rather than the regular latency')
 
     eval_parser = subparsers.add_parser(
         'eval', help='evaluate a model')
     eval_parser.add_argument('model', help='model to use')
-    eval_parser.add_argument('--draft', help='Draft model; if specified, will evaluate the model with speculative sampling with the draft model rather than the regular model')
+    eval_parser.add_argument(
+        '--draft', help='Draft model; if specified, will evaluate the model with speculative sampling with the draft model rather than the regular model')
     return parser
 
 
 if __name__ == "__main__":
     parser = create_argument_parser()
     args = parser.parse_args()
+    if args.verbose:
+        # set log level to debug
+        logging.basicConfig(level=logging.DEBUG)
+
     if args.subcommand == 'compare':
         model = create_model(**models_params[args.model])
         draft_model = create_model(**models_params[args.draft])
@@ -265,6 +275,27 @@ if __name__ == "__main__":
         model = create_model(**models_params[args.model])
         gen_ids, ms_per_token = time_model(model)
         print_results(ms_per_token, gen_ids, args.model)
+
+    elif (args.subcommand == 'eval' and args.draft):
+        print(f"Measuring perf of {args.model} with draft {args.draft}")
+        print('-'*20)
+        prompts, results = evals.create_multiplication_prompts(1338, 50)
+        model = create_model(**models_params[args.model])
+        draft_model = create_model(**models_params[args.draft])
+        prompted_success_rate, generated_success_rate = evals.measure_model_score(
+            model, tokenizer, prompts, results)
+        evals.print_results(prompted_success_rate, generated_success_rate,
+                            args.model, args.draft)
+
+    elif (args.subcommand == 'eval'):
+        print(f"Measuring perf of {args.model}")
+        print('-'*20)
+        prompts, results = evals.create_multiplication_prompts(1338, 50)
+        model = create_model(**models_params[args.model])
+        prompted_success_rate, generated_success_rate = evals.measure_model_score(
+            model, tokenizer, prompts, results)
+        evals.print_results(prompted_success_rate, generated_success_rate,
+                            args.model)
 
     else:
         # show usage
