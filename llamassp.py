@@ -226,6 +226,8 @@ def create_argument_parser():
     eval_parser.add_argument('model', help='model to use')
     eval_parser.add_argument(
         '--draft', help='Draft model; if specified, will evaluate the model with speculative sampling with the draft model rather than the regular model')
+    eval_parser.add_argument('--seed', type=int, default=1338,
+                             help='Seed for randomly creating the eval prompts')
     return parser
 
 
@@ -279,7 +281,7 @@ if __name__ == "__main__":
     elif (args.subcommand == 'eval' and args.draft):
         print(f"Measuring perf of {args.model} with draft {args.draft}")
         print('-'*20)
-        prompts, results = evals.create_multiplication_prompts(1338, 50)
+        prompts, results = evals.create_multiplication_prompts(args.seed, 50)
         model = create_model(**models_params[args.model])
         draft_model = create_model(**models_params[args.draft])
         prompted_success_rate, generated_success_rate = evals.measure_model_score(
@@ -290,7 +292,7 @@ if __name__ == "__main__":
     elif (args.subcommand == 'eval'):
         print(f"Measuring perf of {args.model}")
         print('-'*20)
-        prompts, results = evals.create_multiplication_prompts(1338, 50)
+        prompts, results = evals.create_multiplication_prompts(args.seed, 50)
         model = create_model(**models_params[args.model])
         prompted_success_rate, generated_success_rate = evals.measure_model_score(
             model, tokenizer, prompts, results)

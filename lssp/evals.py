@@ -77,7 +77,7 @@ def print_results(prompted_success_rate,
                   model_name, draft_name=None):
     """Print results of the addition eval"""
     print("-"*20)
-    print(f"Results for {model_name}"
+    print(f"Eval Results for {model_name}"
           + (f" with {draft_name}" if draft_name else ""))
     print(f"Prompted success rate: {prompted_success_rate}")
     print(f"Generated success rate: {generated_success_rate}")
