@@ -228,6 +228,8 @@ def create_argument_parser():
         '--draft', help='Draft model; if specified, will evaluate the model with speculative sampling with the draft model rather than the regular model')
     eval_parser.add_argument('--seed', type=int, default=1338,
                              help='Seed for randomly creating the eval prompts')
+    eval_parser.add_argument('--nb-prompts', type=int, default=250,
+                             help='Number of eval prompts to create')
     return parser
 
 
@@ -255,16 +257,6 @@ if __name__ == "__main__":
             except EOFError:
                 break
             show_comparative_speeds(text, model, draft_model)
-            """
-            draft_time = time.time()
-            gen_ids_draft = sample_model(draft_model,
-   , MAX_NEW_TOKENS                                         tokenizer(text, return_tensors="pt").input_ids)
-            completion = tokenizer.decode(
-                gen_ids_draft[0], skip_special_tokens=True)
-            draft_time = time.time() - draft_time
-            print(
-                f"\n---\n Draft model completion: {completion}\nTime: {draft_time:.2f}s\n")
-            """
 
     elif (args.subcommand == 'latency' and args.draft):
         print(f"Testing {args.model} with draft {args.draft}")
@@ -286,7 +278,8 @@ if __name__ == "__main__":
         print(f"Eval of {args.model} on multiplication task (seed {args.seed})"
               + (f" with draft {args.draft}" if args.draft else ""))
         print('-'*20)
-        prompts, results = evals.create_multiplication_prompts(args.seed, 50)
+        prompts, results = evals.create_multiplication_prompts(args.seed,
+                                                               args.nb_prompts)
         model = create_model(**models_params[args.model])
         prompted_success_rate, generated_success_rate = evals.measure_model_score(
             model, tokenizer, prompts, results)
