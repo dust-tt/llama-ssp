@@ -1,5 +1,4 @@
 # TODO
-- 
 - make the test simpler by removing the second line assesment
 - change mults to avoid too easy ones, generate only 10 tokens
 - handle a parsing failure on the first line as a model error
@@ -17,6 +16,10 @@
 - Write the results in the readme
 - Comm with the link to the results
 
+## Done
++ ability to make small runs that pass as integration tests
+  + change cli code to accept an eval size
+  + change xp.sh to have a --test arg
 
 ## Next
 - readme with the new cli
