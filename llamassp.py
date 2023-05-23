@@ -262,7 +262,8 @@ if __name__ == "__main__":
             completion = tokenizer.decode(
                 gen_ids_draft[0], skip_special_tokens=True)
             draft_time = time.time() - draft_time
-            print(f"\n---\n Draft model completion: {completion}\nTime: {draft_time:.2f}s\n")
+            print(
+                f"\n---\n Draft model completion: {completion}\nTime: {draft_time:.2f}s\n")
             """
 
     elif (args.subcommand == 'latency' and args.draft):
@@ -278,19 +279,12 @@ if __name__ == "__main__":
         gen_ids, ms_per_token = time_model(model)
         print_results(ms_per_token, gen_ids, args.model)
 
-    elif (args.subcommand == 'eval' and args.draft):
-        print(f"Measuring perf of {args.model} with draft {args.draft}")
-        print('-'*20)
-        prompts, results = evals.create_multiplication_prompts(args.seed, 50)
-        model = create_model(**models_params[args.model])
-        draft_model = create_model(**models_params[args.draft])
-        prompted_success_rate, generated_success_rate = evals.measure_model_score(
-            model, tokenizer, prompts, results)
-        evals.print_results(prompted_success_rate, generated_success_rate,
-                            args.model, args.draft)
-
     elif (args.subcommand == 'eval'):
-        print(f"Measuring perf of {args.model}")
+        if args.draft:
+            raise NotImplementedError(
+                "Evaluation with draft model not implemented yet")
+        print(f"Eval of {args.model} on multiplication task (seed {args.seed})"
+              + (f" with draft {args.draft}" if args.draft else ""))
         print('-'*20)
         prompts, results = evals.create_multiplication_prompts(args.seed, 50)
         model = create_model(**models_params[args.model])

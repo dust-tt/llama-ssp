@@ -1,15 +1,33 @@
 # TODO
-+ repeated sequential prompting
-+ 8bit issue with temperature sampling
-+ change evals to multiplications
+- 
+- make the test simpler by removing the second line assesment
+- change mults to avoid too easy ones, generate only 10 tokens
+- handle a parsing failure on the first line as a model error
+- change XPs to run 2 times with 250 mults with different seeds
+- change llama-ssp to handle ssp evals
+  - in measure_model_score, call to ssp rather than sample_model when draft given
+  - in llama_ssp, allow call with draft model
+  - in xp script, allow ssp evals
+
+- cleaner output: Nb of multiplications, nb of successes, ratio, confidence intervals
+  - Output confidence intervals
+- Get valid evals -- with confidence intervals -- for 7 to 65B and 13 to 65B ssp
+  - split in 2: 7 & 13B, and 13B ssp on the xpg5 machine
+  - 30 & 65B / regular and ssp / on the xpfat machine
+- Write the results in the readme
+- Comm with the link to the results
+
+
+## Next
 - readme with the new cli
 - fabricmanager handled
 - import base in sample model
 
 
-
-
-
++ repeated sequential prompting
++ 8bit issue with temperature sampling
++ change evals to multiplications
++ add script to run regular eval xps
 ## Leg
 - Additions benchmark; few shot prompt with additions from 1 to 300
   - measure bench results on all models + ssp models
