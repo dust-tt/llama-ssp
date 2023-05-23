@@ -56,7 +56,7 @@ def measure_model_score(model, tokenizer, prompts, results, draft_model=None):
         if draft_model is not None:
             input_ids = ssp(model, draft_model, 10, input_ids)
         else:
-            input_ids = base.sample_model(model, input_ids, nb_tokens=10)
+            input_ids = base.sample_model(model, input_ids, nb_tokens=6)
         output = tokenizer.decode(input_ids[0], skip_special_tokens=True)
         debug(f"outputs = {output}")
         outputs.append(output)

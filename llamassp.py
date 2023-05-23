@@ -228,7 +228,7 @@ def create_argument_parser():
         '--draft', help='Draft model; if specified, will evaluate the model with speculative sampling with the draft model rather than the regular model')
     eval_parser.add_argument('--seed', type=int, default=1338,
                              help='Seed for randomly creating the eval prompts')
-    eval_parser.add_argument('--nb-prompts', type=int, default=250,
+    eval_parser.add_argument('--nb-prompts', type=int, default=1000,
                              help='Number of eval prompts to create')
     return parser
 

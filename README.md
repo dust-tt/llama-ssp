@@ -151,4 +151,13 @@ This is not simple since there is inherent randomness in the acceptation of toke
 
 The paper cited at the beginning provides theoretical proof that the output token distributions are the same, as well as evaluations on common benchmarks. With this repo, an intuitive check can be done by looking at the completions : those of the regularly sampled 30B model seem to be of the same quality level than those of SSp 30B/7B.
 
-A next step for the work in this repo will be to find clean measurements showing that the same distribution is recovered.
+In order to further show that SSP provides same quality results as the target model with the code of this repo, we perform evaluations by prompting models for multiplications of numbers between 1 and 99. Each model is assessed by its percentage of successes, in regular sampling (RSP) and SSP mode with a 7B draft model. Results are displayed below
+
+
+
+|Model_type | RSp perf| Speed Improvement|
+|---|---|---|
+|13B_8bit| 270ms|-|
+|SSP 13B/7B_8bit| 330ms| -
+|30B_8bit|405ms|
+|SSP 30B/7B_8bit|370ms|
