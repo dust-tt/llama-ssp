@@ -36,6 +36,13 @@ def valid_multiplication(output_string, result):
         return False
 
 
+def confidence_interval(successes, trials):
+    """Compute the 95% confidence interval of a binomial distribution."""
+    p = successes / trials
+    interval_size = 1.96 * np.sqrt(p * (1 - p) / trials)
+    return (p - interval_size, p + interval_size)
+
+
 def measure_model_score(model, tokenizer, prompts, results, draft_model=None):
     """Measure the model's score on the prompts."""
     info(f"Measuring model score on {len(prompts)} additions prompts")
@@ -65,12 +72,17 @@ def measure_model_score(model, tokenizer, prompts, results, draft_model=None):
     for output, result in zip(outputs, results):
         successes += valid_multiplication(output[0], result)
 
-    return successes/len(prompts)
+    return {
+        'trials': len(prompts),
+        'successes': successes,
+        'success_rate': successes / len(prompts),
+        'confidence_interval': confidence_interval(successes, len(prompts)),
+    }
 
 
-def print_results(prompted_success_rate, model_name, draft_name=None):
-    """Print results of the addition eval"""
+def print_results(results, model_name, draft_name=None):
+    """Print results of the multiplication eval"""
     print("-"*20)
     print(f"Eval Results for {model_name}"
           + (f" with {draft_name}" if draft_name else ""))
-    print(f"Prompted success rate: {prompted_success_rate}")
+    print(f"Prompted success rate:\n{results}")

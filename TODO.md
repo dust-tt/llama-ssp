@@ -5,7 +5,7 @@
   + in xp script, allow ssp evals
 
 - cleaner output: Nb of multiplications, nb of successes, ratio, confidence intervals
-  - Output confidence intervals
+  + Output confidence intervals
 - Get valid evals -- with confidence intervals -- for 7 to 65B and 13 to 65B ssp
   - split in 2: 7 & 13B, and 13B ssp on the xpg5 machine
   - 30 & 65B / regular and ssp / on the xpfat machine

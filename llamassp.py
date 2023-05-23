@@ -282,9 +282,9 @@ if __name__ == "__main__":
             draft_model = create_model(**models_params[args.draft])
         else:
             draft_model = None
-        success_rate = evals.measure_model_score(
+        results = evals.measure_model_score(
             model, tokenizer, prompts, results, draft_model)
-        evals.print_results(success_rate, args.model)
+        evals.print_results(results, args.model, args.draft)
 
     else:
         # show usage
