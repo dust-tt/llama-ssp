@@ -275,15 +275,13 @@ if __name__ == "__main__":
         print(f"Eval of {args.model} on multiplication task (seed {args.seed})"
               + (f" with draft {args.draft}" if args.draft else ""))
         print('-'*20)
-        prompts, results = evals.create_multiplication_prompts(args.seed,
-                                                               args.nb_prompts)
         model = create_model(**models_params[args.model])
         if args.draft:
             draft_model = create_model(**models_params[args.draft])
         else:
             draft_model = None
         results = evals.measure_model_score(
-            model, tokenizer, prompts, results, draft_model)
+            model, tokenizer, args.nb_prompts, args.seed, draft_model)
         evals.print_results(results, args.model, args.draft)
 
     else:

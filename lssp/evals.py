@@ -43,8 +43,10 @@ def confidence_interval(successes, trials):
     return (p - interval_size, p + interval_size)
 
 
-def measure_model_score(model, tokenizer, prompts, results, draft_model=None):
+def measure_model_score(model, tokenizer, nb_prompts, seed, draft_model=None):
     """Measure the model's score on the prompts."""
+    # Generate prompts
+    prompts, results = create_multiplication_prompts(seed, nb_prompts)
     info(f"Measuring model score on {len(prompts)} additions prompts")
 
     # Get model outputs
@@ -77,6 +79,7 @@ def measure_model_score(model, tokenizer, prompts, results, draft_model=None):
         'successes': successes,
         'success_rate': successes / len(prompts),
         'confidence_interval': confidence_interval(successes, len(prompts)),
+        'seed': seed,
     }
 
 
