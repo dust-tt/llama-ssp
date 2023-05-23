@@ -101,7 +101,7 @@ def ssp(target_model, draft_model, min_nb_tokens, input_ids, K=4, display=False)
     assert B == 1, "Batch size must be 1, implement the fixes for B > 1"
 
     while input_ids.shape[1] < T + min_nb_tokens:
-        debug("Current length:", input_ids.shape[1])
+        debug(f"Current length: {input_ids.shape[1]}")
         input_ids = _ssp_iteration(target_model, draft_model, input_ids, K, display)
     return input_ids
 

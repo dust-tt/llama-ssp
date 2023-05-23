@@ -5,6 +5,7 @@ from unittest.mock import patch
 import numpy as np
 
 from lssp import base
+from lssp.ssp import ssp
 
 base_prompt = """8 * 12 = 96
 25 * 4 = 100
@@ -35,7 +36,7 @@ def valid_multiplication(output_string, result):
         return False
 
 
-def measure_model_score(model, tokenizer, prompts, results):
+def measure_model_score(model, tokenizer, prompts, results, draft_model=None):
     """Measure the model's score on the prompts."""
     info(f"Measuring model score on {len(prompts)} additions prompts")
 
@@ -45,7 +46,10 @@ def measure_model_score(model, tokenizer, prompts, results):
         debug(f"prompt = {prompt}")
         inputs = tokenizer(prompt, return_tensors="pt")
         input_ids = inputs.input_ids.to(model.device)
-        input_ids = base.sample_model(model, input_ids, nb_tokens=10)
+        if draft_model is not None:
+            input_ids = ssp(model, draft_model, 10, input_ids)
+        else:
+            input_ids = base.sample_model(model, input_ids, nb_tokens=10)
         output = tokenizer.decode(input_ids[0], skip_special_tokens=True)
         debug(f"outputs = {output}")
         outputs.append(output)

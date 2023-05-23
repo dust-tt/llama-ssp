@@ -272,17 +272,18 @@ if __name__ == "__main__":
         print_results(ms_per_token, gen_ids, args.model)
 
     elif (args.subcommand == 'eval'):
-        if args.draft:
-            raise NotImplementedError(
-                "Evaluation with draft model not implemented yet")
         print(f"Eval of {args.model} on multiplication task (seed {args.seed})"
               + (f" with draft {args.draft}" if args.draft else ""))
         print('-'*20)
         prompts, results = evals.create_multiplication_prompts(args.seed,
                                                                args.nb_prompts)
         model = create_model(**models_params[args.model])
+        if args.draft:
+            draft_model = create_model(**models_params[args.draft])
+        else:
+            draft_model = None
         success_rate = evals.measure_model_score(
-            model, tokenizer, prompts, results)
+            model, tokenizer, prompts, results, draft_model)
         evals.print_results(success_rate, args.model)
 
     else:

@@ -1,10 +1,8 @@
 # TODO
-- handle a parsing failure on the first line as a model error
-- change XPs to run 2 times with 250 mults with different seeds
-- change llama-ssp to handle ssp evals
-  - in measure_model_score, call to ssp rather than sample_model when draft given
-  - in llama_ssp, allow call with draft model
-  - in xp script, allow ssp evals
++ change llama-ssp to handle ssp evals
+  + in measure_model_score, call to ssp rather than sample_model when draft given
+  + in llama_ssp, allow call with draft model
+  + in xp script, allow ssp evals
 
 - cleaner output: Nb of multiplications, nb of successes, ratio, confidence intervals
   - Output confidence intervals
