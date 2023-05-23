@@ -281,10 +281,9 @@ if __name__ == "__main__":
         prompts, results = evals.create_multiplication_prompts(args.seed,
                                                                args.nb_prompts)
         model = create_model(**models_params[args.model])
-        prompted_success_rate, generated_success_rate = evals.measure_model_score(
+        success_rate = evals.measure_model_score(
             model, tokenizer, prompts, results)
-        evals.print_results(prompted_success_rate, generated_success_rate,
-                            args.model)
+        evals.print_results(success_rate, args.model)
 
     else:
         # show usage

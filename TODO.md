@@ -1,6 +1,4 @@
 # TODO
-- make the test simpler by removing the second line assesment
-- change mults to avoid too easy ones, generate only 10 tokens
 - handle a parsing failure on the first line as a model error
 - change XPs to run 2 times with 250 mults with different seeds
 - change llama-ssp to handle ssp evals
