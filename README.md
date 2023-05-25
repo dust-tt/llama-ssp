@@ -11,8 +11,9 @@ Above, you see a 30B llama model generating tokens (on an 8-GPU A100 machine), t
 
 This repo implements an algorithm described in [this paper](https://arxiv.org/pdf/2302.01318.pdf) whose authors are warmly thanked for their work.
 
-## Benefits and Caveats of Ssp
-In the following, the large model we try to speed up is called the `target model`, and the smaller model that helps sampling is called the `draft model`
+In the following, the large model we try to speed up is called the `target model`, and the smaller model that helps sampling is called the `draft model`. We compare regular sampling (RSp) of the target model with speculative sampling (SSp) of the target model with the draft model.
+
+## Benefits and Caveats of SSp
 ### Benefits
 + Almost identical memory footprint
 + Same completion quality
@@ -30,7 +31,7 @@ In the following, the large model we try to speed up is called the `target model
 #### Is it really the same quality? Speculative sampling returns different outputs than regular sampling
 They return different outputs because speculative sampling has inherent randomness. However, it is demonstrated in [the paper on which this repo is based](https://arxiv.org/pdf/2302.01318.pdf)  that using speculative sampling provides the same output probability distributions than regular sampling.
 
-The paper also performs experiments to show this on typical benchmarks.
+The paper also performs experiments to show this on typical benchmarks. In this repo, [experiments on completing multiplications](#distribution-recovery) provide further empirical evidence that SSp completion and RSp completion are of similar quality.
 
 ## Try it yourself
 
@@ -90,9 +91,9 @@ sudo systemctl start nvidia-fabricmanager
 
 
 ## Measurements
-The main result is the Llama 30B and 65B speed improvements using Ssp.
+The main result is the Llama 30B and 65B speed improvements using SSp.
 
-Using speculative sampling with a 7B draft model provides a  ~80% speed improvement with same quality of completions over the regular sampling of the 30B model, and a ~125% speed improvement with the 
+Using speculative sampling with a 7B draft model provides a  ~80% speed improvement with same quality of completions over the regular sampling of the 30B model, and a ~125% speed improvement for the 65B model.
 
 ### Measured sampling speed of various models
 
@@ -107,16 +108,16 @@ On a p4d.24xlarge (8 A100 40GB gpus):
 |30B|330ms|
 |65B|610ms|
 
-Comparison Ssp / regular sampling:
+Comparison SSp / RSp (regular sampling):
 
 |Model_type | Ms/token| Speed Improvement|
 |---|---|---|
 |13B|125ms|-|
-|SSP 13B/7B|**114ms**|**10%**|
+|SSp 13B/7B|**114ms**|**10%**|
 |30B|330ms|-|
-|SSP 30B/7B|**180ms**|**80%**|
+|SSp 30B/7B|**180ms**|**80%**|
 |65B|610ms|-|
-|SSP 65B/7B |**270ms**|**125%**|
+|SSp 65B/7B |**270ms**|**125%**|
 
 ### Notes on the measures
 The timings perform completions on 15 examples (+ 1 warmup not shown), and finally output the model generation latency in ms/token (so lower is better). The measurements are on relatively small prompts (~ 1 sentence) and small completions (64 tokens); longer prompts / completion would of course decrease the speed.
@@ -135,29 +136,29 @@ Experiments with quantized models on a g5.12xlarge AWS instance:
 |30B_8bit |  405ms|
 |65B_8bit |  530ms|
 
-Comparison Ssp / regular sampling:
+Comparison SSp / RSp:
 
 |Model_type | Ms/token| Speed Improvement|
 |---|---|---|
 |13B_8bit| 270ms|-|
-|SSP 13B/7B_8bit| 330ms| -
+|SSp 13B/7B_8bit| 330ms| -
 |30B_8bit|405ms|
-|SSP 30B/7B_8bit|370ms|
+|SSp 30B/7B_8bit|370ms|
 
 ## Distribution recovery
-In addition to measuring the speed improvement, it is necessary to check speculative sampling samples with distribution similar to original sampling, in other words that the SSP generations are as good as the regular ones. This in
+In addition to measuring the speed improvement, it is necessary to check speculative sampling samples with the same distribution than regular sampling, in other words that the SSp generations are as good as the regular ones.
 
-This is not simple since there is inherent randomness in the acceptation of tokens from the draft model, the completions from ssp and 
+There is inherent randomness in the acceptation of tokens from the draft model; therefore the completions from SSp and RSp naturally differ and we cannot expect the outputs to be exactly the same.
 
 The paper cited at the beginning provides theoretical proof that the output token distributions are the same, as well as evaluations on common benchmarks. With this repo, an intuitive check can be done by looking at the completions : those of the regularly sampled 30B model seem to be of the same quality level than those of SSp 30B/7B.
 
-In order to further show that SSP provides same quality results as the target model with the code of this repo, we perform evaluations by prompting models for multiplications of numbers between 1 and 99. Each model is assessed by its percentage of successes, in regular sampling (RSP) and SSP mode with a 7B draft model. Results are displayed below
+In order to further show that SSp provides same quality results as the target model with the code of this repo, we perform evaluations by prompting models for random multiplications of numbers between 1 and 99. Each model is assessed by its percentage of successes, in regular sampling (RSp) and SSp mode with a 7B draft model. Results are displayed below with 95% confidence bounds (Wald).
 
-
-
-|Model_type | RSp perf| Speed Improvement|
+|Model_type | RSp perf| SSp perf|
 |---|---|---|
-|13B_8bit| 270ms|-|
-|SSP 13B/7B_8bit| 330ms| -
-|30B_8bit|405ms|
-|SSP 30B/7B_8bit|370ms|
+|7B| 28.4% (+- 1.4%)| 28.1% (+- 1.4%)|
+|13B| 42.9% (+-1.5%) | 43.1 (+- 1.5%)|
+|30B| 50.1% (+- 1.5%) | 49.6% (+- 1.5%) |
+|65B|-|-|
+
+The results show that SSp and RSp perform the same with high confidence.
