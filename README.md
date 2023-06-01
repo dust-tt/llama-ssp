@@ -45,22 +45,23 @@ cd llama-ssp
 chmod a+x machine-install.sh
 sudo ./machine-install.sh  # global setup
 . setup.sh  # project setup(virtual env, requirements)
-python3 llamassp.py compare 30B 7B  # compare regular & ssp as in the gif
+python llamassp.py compare 30B 7B  # compare regular & ssp as in the gif
+```
+
+Get the cli details with
+```
+python llamassp.py -h
 ```
 
 Note: the above was tested on an Ubuntu 22.04 OS.
 
-### Run a comparison of regular Vs speculative sampling
-To try exactly what's in the gif with various target models and draft models
-```python3 llamassp.py compare TARGET_MODEL_NAME DRAFT_MODEL_NAME```
-
 ### Run raw timing measurements
 To run experiments measuring average model latency in ms/token:
-```python3 llamassp.py TARGET_MODEL_NAME [DRAFT_MODEL_NAME]```
+```python3 llamassp.py latency TARGET_MODEL_NAME [--draft DRAFT_MODEL_NAME]```
 
-Results of such measurements are below
+Results of such measurements are below. 
 
-TARGET_MODEL_NAME correspond to various flavors of Llama models (7B to 30B), with or without quantization. Possible values are `7B, 13B, 30B, 7B_8bit, 13B_8bit, 30B, 30B_8bit`. These are the models published on HuggingFace by `decapoda-research`. 
+TARGET_MODEL_NAME correspond to various flavors of Llama models (7B to 30B), with or without quantization. Possible values are `7B, 13B, 30B, 7B_8bit, 13B_8bit, 30B, 30B_8bit, 65B, 65B_8bt`. These are the models published on HuggingFace by `decapoda-research`. 
 
 Using 65B versions, however, requires providing the weights yourself. Do so as explained below in "Use of custom model" 
 
@@ -73,7 +74,9 @@ If DRAFT_MODEL_NAME is specified, speculative sampling latency is measured.
 #### Use of custom model
 To use a custom model, add it in `model_params`. You can provide a path to HF weights as `model_name`. Find weights on the internet, then convert them to HF weights following [these instructions](https://huggingface.co/docs/transformers/main/en/model_doc/llama).
 
-This step is required if you want to use a 65B model. This is because the 65B model provided by decapoda-research performs very bad completions through the code of this repo at the time of the writing. Using 65B weights provided by another source then converting them to HF weights was tested and works fine.
+This step is required if you want to use a 65B model. This is because the 65B model provided by decapoda-research performed very bad completions through the code of this repo at the time of the writing on the settings. Using 65B weights provided by another source then converting them to HF weights was tested and works fine.
+
+!! Any huggingface model can be tested (not only Llama), however speculative sampling requires the draft and the target models to have the same tokenizer.
 
 #### Memory requirements
 To run these experiments, the sum of available memory should be about 4 times the model size for a regular model, and 2 times the model size for a quantized model
@@ -82,13 +85,22 @@ E.g. to test the 30B model => you need 120GB GPU memory. To test the 7B_8bit mod
 To test speculative sampling of a 30B model with a 7B draft, you need 148GB GPU memory (4*37). 
 
 #### Specific GPU config
-If you stumble on this kind of error: `Error 802: system not yet initialized`
-On some machines -- e.g. p4d.24xlarge that was used for these experiments -- additional setup might be required 
+You may stumble on this kind of error: `Error 802: system not yet initialized`. On some machines--e.g. p4d.24xlarge that was used for these experiments--additional setup might be required:
 ```
 sudo apt-get install cuda-drivers-fabricmanager
 sudo systemctl start nvidia-fabricmanager
 ```
 
+### Run a comparison of regular Vs speculative sampling
+To try exactly what's in the gif with various target models and draft models
+```python3 llamassp.py compare TARGET_MODEL_NAME DRAFT_MODEL_NAME```
+
+### Run evals
+Evals measure how well models (regular or speculative sampling) perform on a simple multiplication benchmark:
+```
+python llamassp.py eval [--seed SEED] [--nb-prompts NB_PROMPTS] TARGET_MODEL DRAFT_MODEL
+```
+The command will assess the model by making it perform NB_PROMPTS multiplications and return the ratio of success. The multiplications are randomly drawn with numbers between 1 and 100, with a seed for repeatability.
 
 ## Measurements
 The main result is the Llama 30B and 65B speed improvements using SSp.
@@ -113,11 +125,11 @@ Comparison SSp / RSp (regular sampling):
 |Model_type | Ms/token| Speed Improvement|
 |---|---|---|
 |13B|125ms|-|
-|SSp 13B/7B|**114ms**|**10%**|
+|SSp 13B/7B|**114ms**|**1.1x**|
 |30B|330ms|-|
-|SSp 30B/7B|**180ms**|**80%**|
+|SSp 30B/7B|**180ms**|**1.8x**|
 |65B|610ms|-|
-|SSp 65B/7B |**270ms**|**125%**|
+|SSp 65B/7B |**270ms**|**2.25x**|
 
 ### Notes on the measures
 The timings perform completions on 15 examples (+ 1 warmup not shown), and finally output the model generation latency in ms/token (so lower is better). The measurements are on relatively small prompts (~ 1 sentence) and small completions (64 tokens); longer prompts / completion would of course decrease the speed.
@@ -161,4 +173,4 @@ In order to further show that SSp provides same quality results as the target mo
 |30B| 50.1% (+- 1.5%) | 49.6% (+- 1.5%) |
 |65B|-|-|
 
-The results show that SSp and RSp perform the same with high confidence.
+The results show that SSp and RSp perform the same with high confidence. The script for these experiments can be found [here](xp.sh).
