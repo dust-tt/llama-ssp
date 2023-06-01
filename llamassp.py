@@ -1,3 +1,4 @@
+import os
 import argparse
 import logging
 from lssp.base import create_model
@@ -110,7 +111,7 @@ models_params = {
     '65B': {'model_name': llama65b_name,
             'max_memory': max_memory(8),
             'load_in_8bit': False},
-    '65B_v2': {'model_name': "~/data/hf-weights/65B",
+    '65B_v2': {'model_name': f"{os.getenv('HOME')}/data/hf-weights/65B",
                'max_memory': max_memory(8),
                'load_in_8bit': False},
 }
