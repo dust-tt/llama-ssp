@@ -1,6 +1,6 @@
 # Generate tokens 1.5x to 3x faster 
 
-With Speculative Sampling (SSp), a large language model can generate tokens quite faster using a smaller model as help. 
+With Speculative Sampling (SSp), a large language model can [generate tokens quite faster](https://blog.dust.tt/2023-06-02-speculative-sampling) using a smaller model as help.
 
 This repo shows how it's done and measures timing improvements using Llama models. Here's the idea:
 
@@ -8,10 +8,11 @@ This repo shows how it's done and measures timing improvements using Llama model
 
 Above, you see a 30B llama model generating tokens (on an 8-GPU A100 machine), then you see the same model going ~50% to 100% faster (i.e. in 33% to 50% less time) using speculative sampling -- with the same completion quality. Go to [Try it yourself](#try-it-yourself) to try it yourself :)
 
-
-This repo implements an algorithm described in [this paper](https://arxiv.org/pdf/2302.01318.pdf) whose authors are warmly thanked for their work.
+This repo implements an algorithm published in [this paper](https://arxiv.org/pdf/2302.01318.pdf) whose authors are warmly thanked for their work. For non-academic folks, we attempt a shortened, didactic explanation of how it works in our [our blog post](https://blog.dust.tt/2023-06-02-speculative-sampling)
 
 In the following, the large model we try to speed up is called the `target model`, and the smaller model that helps sampling is called the `draft model`. We compare regular sampling (RSp) of the target model with speculative sampling (SSp) of the target model with the draft model.
+
+Side-Note: this repo is an example of the kind of work we do at [Dust](https://dust.tt) ✨
 
 ## Benefits and Caveats of SSp
 ### Benefits
@@ -171,6 +172,6 @@ In order to further show that SSp provides same quality results as the target mo
 |7B| 28.4% (+- 1.4%)| 28.1% (+- 1.4%)|
 |13B| 42.9% (+-1.5%) | 43.1 (+- 1.5%)|
 |30B| 50.1% (+- 1.5%) | 49.6% (+- 1.5%) |
-|65B|-|-|
+|65B| TBD | TBD |
 
 The results show that SSp and RSp perform the same with high confidence. The script for these experiments can be found [here](xp.sh).
